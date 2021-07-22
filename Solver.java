@@ -6,49 +6,42 @@
 
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.MinPQ;
+import edu.princeton.cs.algs4.Stack;
 import edu.princeton.cs.algs4.StdOut;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
 public class Solver {
 
     // find a solution to the initial board (using the A* algorithm)
 
-    private Board board;
-    private List<Board> boards;
-    private boolean isSolvable = false;
-    private Node deleted;
-    private List<Board> selected;
+    private boolean isSolvable = true;
+    private Stack<Board> selected;
+    private Node initialTwinNode;
 
     public Solver(Board initial) {
         if (initial == null) {
             throw new IllegalArgumentException();
         }
-        board = initial;
-        boards = new ArrayList<>();
-        //Comparator<Node> comparator = new NodeComparator();
+        Node deleted;
         MinPQ<Node> queue = new MinPQ<>();
-
-        Node initialNode = new Node(board, board.manhattan(), null);
+        Node initialNode = new Node(initial, null);
         queue.insert(initialNode);
+        initialTwinNode = new Node(initial.twin(), null);
+        queue.insert(initialTwinNode);
         while (!queue.isEmpty()) {
             deleted = queue.delMin();
             if (deleted.board.isGoal()) {
-                isSolvable = true;
+                setSolution(deleted);
                 break;
             }
-            Iterable<Board> childs = deleted.board.neighbors();
-            for (Board boar : childs) {
-                if (!isInList(boar)) {
-                    queue.insert(new Node(boar, boar.manhattan(), deleted));
-                    boards.add(boar);
+            for (Board neighborBoard : deleted.board.neighbors()) {
+                if (deleted.previous == null || !neighborBoard.equals(deleted.previous.board)) {
+                    Node searchNode = new Node(neighborBoard, deleted);
+                    queue.insert(searchNode);
                 }
             }
         }
     }
+
 
     // is the initial board solvable? (see below)
     public boolean isSolvable() {
@@ -58,8 +51,6 @@ public class Solver {
     // min number of moves to solve initial board; -1 if unsolvable
     public int moves() {
         if (isSolvable) {
-            if (selected == null)
-                getList(deleted);
             return selected.size() - 1;
         }
         return -1;
@@ -68,7 +59,6 @@ public class Solver {
     // sequence of boards in a shortest solution; null if unsolvable
     public Iterable<Board> solution() {
         if (isSolvable) {
-            getList(deleted);
             return selected;
         }
         else {
@@ -76,23 +66,16 @@ public class Solver {
         }
     }
 
-    private boolean isInList(Board b) {
-        for (Board n : boards) {
-            if (n.equals(b)) {
-                return true;
+    private void setSolution(Node node) {
+        selected = new Stack<>();
+        while (node != null) {
+            selected.push(node.board);
+            if (node.board == initialTwinNode.board) {
+                isSolvable = false;
+                break;
             }
-        }
-        return false;
-    }
-
-    private void getList(Node node) {
-        selected = new ArrayList<>();
-        while (node.previous != null) {
-            selected.add(node.board);
             node = node.previous;
         }
-        selected.add(board);
-        Collections.reverse(selected);
     }
 
     private class Node implements Comparable<Node> {
@@ -102,40 +85,27 @@ public class Solver {
         private Node previous;
         private int moves;
 
-        public Node(Board board, int manhatan, Node previous) {
+        public Node(Board board, Node previous) {
             this.board = board;
-            this.priority = manhatan + moves;
             this.previous = previous;
-            if(previous != null)
-                this.moves = previous.moves + 1;
-            else
-                this.moves = 0;
+            if (previous != null) {
+                moves = previous.moves + 1;
+            }
+            else {
+                moves = 0;
+            }
+            this.priority = board.manhattan() + moves;
         }
 
         public int compareTo(Node node) {
-            return (this.board.manhattan() - node.board.manhattan()) + (this.moves - node.moves);
-        }
-    }
-
-    private class NodeComparator implements Comparator<Node> {
-
-        public int compare(Node o1, Node o2) {
-            if (o1.priority < o2.priority) {
-                return -1;
-            }
-
-            if (o1.priority > o2.priority) {
-                return 1;
-            }
-
-            return 0;
+            return this.priority - node.priority;
         }
     }
 
     public static void main(String[] args) {
 
         // create initial board from file
-        In in = new In("test.txt");
+        In in = new In("puzzle2x2-unsolvable1.txt");
         int n = in.readInt();
         int[][] tiles = new int[n][n];
         for (int i = 0; i < n; i++)
@@ -145,8 +115,6 @@ public class Solver {
         Board initial = new Board(tiles);
         // solve the puzzle
         Solver solver = new Solver(initial);
-
-        StdOut.println(initial.hamming());
 
         // print solution to standard output
         if (!solver.isSolvable())

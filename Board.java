@@ -4,8 +4,6 @@
  *  Description:
  **************************************************************************** */
 
-import edu.princeton.cs.algs4.StdRandom;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +15,12 @@ public class Board {
     // create a board from an n-by-n array of tiles,
     // where tiles[row][col] = tile at (row, col)
     public Board(int[][] tiles) {
-        this.tiles = tiles.clone();
+        this.tiles = new int[tiles.length][tiles.length];
+        for (int i = 0; i < tiles.length; i++) {
+            for (int j = 0; j < tiles.length; j++) {
+                this.tiles[i][j] = tiles[i][j];
+            }
+        }
 
         goal = new int[dimension()][dimension()];
         int g = 1;
@@ -80,24 +83,17 @@ public class Board {
 
     // is this board the goal board?
     public boolean isGoal() {
-        for (int i = 0; i < dimension(); i++) {
-            for (int j = 0; j < dimension(); j++) {
-                if (tiles[i][j] != goal[i][j]) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return hamming() == 0;
     }
 
     // does this board equal y?
     public boolean equals(Object y) {
-        if (y == null)
-            return false;
 
-        if (!(y instanceof Board))
-            return false;
+        //if (y == this) return true;
+
+        if (y == null) return false;
+
+        if (y.getClass() != this.getClass()) return false;
 
         Board by = (Board) y;
 
@@ -198,35 +194,32 @@ public class Board {
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        int[][] t = tiles.clone();
+        int[][] t = arrayCopy(tiles);
         int dimen = dimension();
         Index index = null;
-        for (int i = 1; i < dimen - 1; i++) {
-            for (int j = 1; j < dimen - 1; j++) {
+        for (int i = 0; i < dimen; i++) {
+            for (int j = 0; j < dimen; j++) {
                 if (tiles[i][j] == 0) {
                     index = new Index(i, j);
+                    break;
                 }
             }
         }
-
-        int x = getRandom(tiles, index.i);
-        int temp = t[x][0];
-        t[x][0] = t[x][1];
-        t[x][1] = temp;
-
+        if (index.i == 0) {
+            int temp = t[1][0];
+            t[1][0] = t[1][1];
+            t[1][1] = temp;
+        }
+        else {
+            int temp = t[0][0];
+            t[0][0] = t[0][1];
+            t[0][1] = temp;
+        }
         return new Board(t);
     }
 
     private int abs(int x) {
         return Math.abs(x);
-    }
-
-    private int getRandom(int[][] array, int v) {
-        int j;
-        do {
-            j = StdRandom.uniform(array.length);
-        } while (j == v);
-        return j;
     }
 
     private Board newBoard(int a, int b, int c, int d) {
@@ -266,5 +259,15 @@ public class Board {
             this.i = i;
             this.j = j;
         }
+    }
+
+    private int[][] arrayCopy(int[][] blocks) {
+        int[][] copy = new int[blocks.length][blocks.length];
+        for (int i = 0; i < blocks.length; i++) {
+            for (int j = 0; j < blocks.length; j++) {
+                copy[i][j] = blocks[i][j];
+            }
+        }
+        return copy;
     }
 }
